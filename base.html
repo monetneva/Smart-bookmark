@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Smart Bookmark</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</head>
+<body>
+    <header>
+        <div class="header-top">
+            <div id="bookInfo" style="display:flex; align-items:center; gap:8px;">
+                <img src="/static/images/star23.png" alt="Star" style="height: 56px;">
+                <span id="bookTitleText">Loading Book Info...</span>
+            </div>            
+            <div id="language-and-avatar" style="display:flex; align-items:center; gap:10px;">
+                <button id="toggleLangBtn" onclick="toggleLanguageAndReload()">🌎 Toggle Language</button>
+                <div id="avatarPreview" style="width:50px; height:50px;"></div>
+            </div>
+        </div>
+        <h1>📚 Smart Bookmark</h1>
+    </header>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize language
+        const savedLang = localStorage.getItem('lang');
+        if (savedLang) language = savedLang;
+
+        // Initialize book info
+        const bookTitle = localStorage.getItem('detectedBookTitle');
+        const bookChapter = localStorage.getItem('detectedBookChapter');
+        if (bookTitle && bookChapter) {
+            const titleText = document.getElementById('bookTitleText');
+            if (titleText) {
+                titleText.innerText = `${bookTitle} — ${bookChapter}`;
+        }
+}
+
+
+        // Initialize voices if needed
+        if (typeof populateVoices === 'function') {
+            populateVoices();
+            if (speechSynthesis.onvoiceschanged !== undefined) {
+                speechSynthesis.onvoiceschanged = populateVoices;
+            }
+        }
+    });
+    </script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>Welcome to Your Smart Bookmark!</h2>
+
+<div id="bookBuddyPreview" style="margin-bottom:20px;"></div>
+
+<!-- Image Upload Section -->
+<div id="uploadSection" style="margin-bottom: 20px;">
+    <h3>📸 Upload Book</h3>
+    <input type="file" id="bookImage" accept="image/*" style="display: none;">
+    <button onclick="document.getElementById('bookImage').click()">📷 Choose Image</button>
+    <div id="uploadPreview" style="margin-top: 10px;"></div>
+    <div id="uploadStatus" style="margin-top: 10px;"></div>
+</div>
+
+<!-- Spinner and Buttons -->
+<div id="loadingSpinner" style="display:none;">
+    <p>Loading magical content...</p>
+    <div class="spinner"></div>
+</div>
+
+<div id="mainButtons" class="button-stack" style="display:none;">
+    <button id="aboutBtn" onclick="window.location.href='/about'">📖 About the Book</button>
+    <button id="funFactsBtn" onclick="window.location.href='/fun_facts'">💡 Fun Facts</button>
+    <button id="vocabBtn" onclick="window.location.href='/vocab'">🧠 Vocabulary</button>
+    <button id="discussionBtn" onclick="window.location.href='/discussion'">❔ Discussion</button>
+    <button id="avatarBtn" onclick="window.location.href='/avatar'">🎨 Create Book Buddy</button>
+    <button id="similarTitlesBtn" onclick="window.location.href='/similar_titles'">📚 Similar Titles</button>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', async function() {
+    const savedAvatar = localStorage.getItem('savedAvatar');
+    if (savedAvatar) {
+        document.getElementById('bookBuddyPreview').innerHTML = `
+            <h4>Your Book Buddy ^.^</h4>
+            <img src="${savedAvatar}" width="80" height="80" style="border:2px solid #E50914; border-radius:8px; image-rendering:pixelated;"/>
+        `;
+    }
+
+    // Check if we have content and book info
+    const contentStored = localStorage.getItem('contentEN');
+    const bookTitle = localStorage.getItem('detectedBookTitle');
+    const bookChapter = localStorage.getItem('detectedBookChapter');
+    
+    if (contentStored && bookTitle && bookChapter) {
+        document.getElementById('mainButtons').style.display = 'grid';
+    }
+
+    // Image upload handler
+    document.getElementById('bookImage').addEventListener('change', async function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Show preview
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('uploadPreview').innerHTML = `
+                <img src="${e.target.result}" style="max-width: 200px; max-height: 300px; border: 2px solid #E50914; border-radius: 8px;">
+            `;
+        };
+        reader.readAsDataURL(file);
+
+        // Show loading state
+        document.getElementById('uploadStatus').innerHTML = 'Processing image...';
+        document.getElementById('loadingSpinner').style.display = 'block';
+        document.getElementById('mainButtons').style.display = 'none';
+
+        // Create FormData and send to server
+        const formData = new FormData();
+        formData.append('image', file);
+
+        try {
+            const response = await fetch('/process_image', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) throw new Error('Failed to process image');
+            
+            const data = await response.json();
+            
+            // Update book info
+            localStorage.setItem('detectedBookTitle', data.title);
+            localStorage.setItem('detectedBookChapter', data.chapter);
+            
+            // Clear existing content
+            localStorage.removeItem('contentEN');
+            localStorage.removeItem('contentES');
+            
+            // Show loading state
+            document.getElementById('uploadStatus').innerHTML = 'Processing content...';
+            
+            try {
+                // Fetch new content
+                const contentResponse = await fetch('/generate_content', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title: data.title, chapter: data.chapter })
+                });
+
+                if (!contentResponse.ok) {
+                    throw new Error('Failed to generate content');
+                }
+
+                const contentData = await contentResponse.json();
+                
+                // Store content
+                localStorage.setItem('contentEN', JSON.stringify(parseContent(contentData.content_en, "EN")));
+                localStorage.setItem('contentES', JSON.stringify(parseContent(contentData.content_es, "ES")));
+                
+                // Update UI
+                document.getElementById('uploadStatus').innerHTML = 'Content ready!';
+                document.getElementById('mainButtons').style.display = 'grid';
+            } catch (error) {
+                console.error('Error generating content:', error);
+                document.getElementById('uploadStatus').innerHTML = 'Error generating content. Please try again.';
+            } finally {
+                document.getElementById('loadingSpinner').style.display = 'none';
+            }
+            
+        } catch (error) {
+            console.error('Error:', error);
+            document.getElementById('uploadStatus').innerHTML = 'Error processing image. Please try again.';
+            document.getElementById('loadingSpinner').style.display = 'none';
+        }
+    });
+});
+</script>
+
+{% endblock %}

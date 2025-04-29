@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="content-section">
+    <h2>📖 About the Book</h2>
+    <div id="aboutContent" class="content-text"></div>
+
+    <div class="readaloud-controls">
+        <select id="voiceSelect"></select>
+        <div class="button-group">
+            <button onclick="readContent('about')">▶️ Play</button>
+            <button onclick="pauseSpeech()">⏸️ Pause</button>
+            <button onclick="resumeSpeech()">▶️ Resume</button>
+        </div>
+    </div>
+
+    <nav class="navigation">
+        <a href="/" class="nav-button">🏠 Home</a>
+    </nav>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize content based on language
+    const lang = localStorage.getItem('lang') || 'EN';
+    let content;
+    
+    try {
+        content = lang === 'ES' ? 
+            JSON.parse(localStorage.getItem('contentES')) : 
+            JSON.parse(localStorage.getItem('contentEN'));
+            
+        if (!content) {
+            document.getElementById('aboutContent').innerHTML = '<p>Please upload a book first!</p>';
+            document.querySelector('.readaloud-controls').style.display = 'none';
+            return;
+        }
+        
+        document.getElementById('aboutContent').innerText = content.about || "No about content available.";
+        
+        // Initialize voices
+        populateVoices();
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = populateVoices;
+        }
+        autoSwitchVoice();
+    } catch (error) {
+        console.error('Error loading content:', error);
+        document.getElementById('aboutContent').innerHTML = '<p>Error loading content. Please try again.</p>';
+        document.querySelector('.readaloud-controls').style.display = 'none';
+    }
+});
+</script>
+
+{% endblock %}

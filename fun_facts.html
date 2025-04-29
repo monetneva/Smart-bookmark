@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>💡 Fun Facts</h2>
+<ul id="funFactsList"></ul>
+
+<div class="readaloud-controls">
+    <select id="voiceSelect"></select>
+    <div style="margin-top:10px;">
+        <button onclick="readContent('fun_facts')">▶️ Play</button>
+        <button onclick="pauseSpeech()">⏸️ Pause</button>
+        <button onclick="resumeSpeech()">▶️ Resume</button>
+    </div>
+</div>
+
+<nav><a href="/">🏠 Home</a></nav>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize language and content
+    const lang = localStorage.getItem('lang') || 'EN';
+    language = lang; // Set global variable
+    
+    try {
+        const storedContent = lang === 'ES' ? 
+            localStorage.getItem('contentES') : 
+            localStorage.getItem('contentEN');
+            
+        if (!storedContent) {
+            document.getElementById('funFactsList').innerHTML = "<li>Please upload a book first!</li>";
+            document.querySelector('.readaloud-controls').style.display = 'none';
+            return;
+        }
+        
+        // Parse content and set global variables
+        const content = JSON.parse(storedContent);
+        if (lang === 'EN') {
+            contentEN = content;
+            contentES = JSON.parse(localStorage.getItem('contentES') || '{}');
+        } else {
+            contentES = content;
+            contentEN = JSON.parse(localStorage.getItem('contentEN') || '{}');
+        }
+        
+        // Display fun facts
+        const facts = content.fun_facts || [];
+        const list = document.getElementById('funFactsList');
+        
+        if (facts.length > 0) {
+            facts.forEach(fact => {
+                const li = document.createElement('li');
+                li.innerText = fact;
+                list.appendChild(li);
+            });
+        } else {
+            list.innerHTML = "<li>No fun facts available.</li>";
+            document.querySelector('.readaloud-controls').style.display = 'none';
+        }
+        
+        // Initialize voices
+        populateVoices();
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = populateVoices;
+        }
+        autoSwitchVoice();
+        
+    } catch (error) {
+        console.error('Error loading content:', error);
+        document.getElementById('funFactsList').innerHTML = "<li>Error loading content. Please try again.</li>";
+        document.querySelector('.readaloud-controls').style.display = 'none';
+    }
+});
+</script>
+
+{% endblock %}
